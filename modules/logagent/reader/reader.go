@@ -47,7 +47,7 @@ func (this *Reader) Drive() (err error) {
 
 //关闭 只允许 Runner 对象调用
 func (this *Reader) Close() (err error) {
-	// err = this.SyncMeta()													此处无需加同步数据代码 Runner 在关闭最后 会将通过 Metaer 同步所有的 MetaeData
+	// err = this.SyncMeta()此处无需加同步数据代码 Runner 在关闭最后 会将通过 Metaer 同步所有的 MetaeData
 	log.Debugf("Reader Start Close!")
 	return
 }
