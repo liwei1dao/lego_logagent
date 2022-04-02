@@ -47,28 +47,22 @@ type (
 	}
 	//采集器结构
 	IRunner interface {
-		ServiceId() string
-		ServiceIP() string
-		MaxProcs() (maxprocs int)
-		MaxCollDataSzie() (msgmaxsize uint64)
-		GetRunnerState() RunnerState
-		Name() (name string)
+		Name() string
+		MaxProcs() int
+		MaxMessageSzie() uint64
+		State() RunnerState
+		Metaer() IMetaer
 		Init() (err error)
 		Start() (err error)
-		Drive() (err error) //驱动工作 提供外部调度器使用 个采集模块根据自己的需求才实现此接口
-		Close(state RunnerState, closemsg string) (err error)
-		Metaer() IMetaer
-		Reader() IReader
+		Close(closemsg string) (err error)
 		ReaderPipe() chan<- ICollData
-		Push_ParserPipe(bucket ICollDataBucket)
-		ParserPipe() <-chan ICollDataBucket
-		Push_TransformsPipe(bucket ICollDataBucket)
-		TransformsPipe(index int) (pipe <-chan ICollDataBucket, ok bool)
-		Push_NextTransformsPipe(index int, bucket ICollDataBucket)
-		Push_SenderPipe(bucket ICollDataBucket)
-		SenderPipe(stype string) (pipe <-chan ICollDataBucket, ok bool)
-		SyncRunnerInfo()
-		StatisticRunner()
+		Push_ParserPipe(data ICollData)
+		ParserPipe() <-chan ICollData
+		Push_TransformsPipe(data ICollData)
+		TransformsPipe(index int) (pipe <-chan ICollData, ok bool)
+		Push_NextTransformsPipe(index int, data ICollData)
+		Push_SenderPipe(data ICollData)
+		SenderPipe(stype string) (pipe <-chan ICollData, ok bool)
 	}
 	IDB interface {
 		WriteMetaData(rname, name string, metae interface{}) error
@@ -100,23 +94,23 @@ type (
 		GetType() string
 		Start() (err error)
 		Close() (err error)
-		Parse(bucket ICollDataBucket)
+		Parse(data ICollData)
 	}
 	//变换器
 	ITransforms interface {
 		GetRunner() IRunner
 		Start() (err error)
 		Close() (err error)
-		Trans(bucket ICollDataBucket)
+		Trans(data ICollData)
 	}
 	//读取器
 	ISender interface {
 		GetRunner() IRunner
 		GetType() string
 		Start() (err error)
-		Run(pipeId int, pipe <-chan ICollDataBucket, params ...interface{})
+		Run(pipeId int, pipe <-chan ICollData, params ...interface{})
 		Close() (err error)
-		Send(pipeId int, bucket ICollDataBucket, params ...interface{})
+		Send(pipeId int, data ICollData, params ...interface{})
 		ReadCnt() int64
 		ReadAnResetCnt() int64
 	}

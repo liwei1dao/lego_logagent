@@ -58,8 +58,8 @@ func (this *Parser) run() {
 	}
 }
 
-func (this *Parser) Parse(bucket core.ICollDataBucket) {
-	this.Runner.Push_TransformsPipe(bucket)
+func (this *Parser) Parse(data core.ICollData) {
+	this.Runner.Push_TransformsPipe(data)
 }
 
 //关闭

@@ -51,15 +51,15 @@ func (this *Transforms) Start() (err error) {
 	return
 }
 
-func (this *Transforms) run(pipeId int, pipe <-chan core.ICollDataBucket) {
+func (this *Transforms) run(pipeId int, pipe <-chan core.ICollData) {
 	defer this.wg.Done()
 	for v := range pipe {
 		this.transforms.Trans(v)
 	}
 }
 
-func (this *Transforms) Trans(bucket core.ICollDataBucket) {
-	this.Runner.Push_NextTransformsPipe(this.index+1, bucket)
+func (this *Transforms) Trans(data core.ICollData) {
+	this.Runner.Push_NextTransformsPipe(this.index+1, data)
 }
 
 //关闭

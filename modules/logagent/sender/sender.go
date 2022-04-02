@@ -55,15 +55,15 @@ func (this *Sender) Start() (err error) {
 	return
 }
 
-func (this *Sender) Run(pipeId int, pipe <-chan core.ICollDataBucket, params ...interface{}) {
+func (this *Sender) Run(pipeId int, pipe <-chan core.ICollData, params ...interface{}) {
 	defer this.Wg.Done()
 	for v := range pipe {
 		this.sender.Send(pipeId, v, params...)
 	}
 }
 
-func (this *Sender) Send(pipeId int, bucket core.ICollDataBucket, params ...interface{}) {
-	atomic.AddInt64(&this.Cnt, int64(len(bucket.SuccItems())))
+func (this *Sender) Send(pipeId int, data core.ICollData, params ...interface{}) {
+	atomic.AddInt64(&this.Cnt, 1)
 }
 
 //关闭

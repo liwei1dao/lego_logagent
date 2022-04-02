@@ -24,9 +24,9 @@ func (this *API_Comp) Init(service core.IService, module core.IModule, comp core
 func (this *API_Comp) CreateRunnerReq(c *http.Context) {
 	defer lego.Recover("CreateRunnerReq")
 	req := &RunnerConfig{
-		RunIp:           []string{core.AutoIp},
-		MaxProcs:        8,
-		MaxCollDataSzie: 4194304,
+		RunIp:          []string{core.AutoIp},
+		MaxProcs:       8,
+		MaxMessageSzie: 2 * 1024 * 1024,
 	}
 	c.ShouldBindJSON(req)
 	log.Debugf("AddNeRunnerReq:%+v", req)
