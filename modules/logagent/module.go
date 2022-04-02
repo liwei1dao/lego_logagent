@@ -7,6 +7,11 @@ import (
 	"github.com/liwei1dao/lego/lib/modules/http"
 )
 
+func NewModule() core.IModule {
+	m := new(LogAnget)
+	return m
+}
+
 type LogAnget struct {
 	http.Http
 }

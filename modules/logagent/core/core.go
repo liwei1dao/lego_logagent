@@ -1,10 +1,19 @@
 package core
 
+import "errors"
+
 const (
 	KeyRaw         = "message"
 	KeyTimestamp   = "collect_time"
 	KeyIdsCollecip = "collect_ip"
 	KeyEqptip      = "source_ip"
+)
+
+var (
+	Error_NoRunner            = errors.New("runner is found")
+	Error_RunnerStoping       = errors.New("runner stoping")
+	Error_RunnerStoped        = errors.New("runner stoped")
+	Error_RunnerTaskExecuting = errors.New("task is executing") //任务正在执行中
 )
 
 const (
@@ -86,6 +95,7 @@ type (
 		Start() (err error)
 		Drive() (err error) //驱动工作 外部程序驱动采集器工作
 		Close() (err error)
+		Read(task IMetaerData) (err error)
 		Input() chan<- ICollData
 	}
 	//读取器

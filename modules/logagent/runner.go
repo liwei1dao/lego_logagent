@@ -150,11 +150,11 @@ func (this *Runner) Start() (err error) {
 func (this *Runner) Close(closemsg string) (err error) {
 	state := atomic.LoadInt32(&this.state)
 	if state == int32(core.Runner_Stoped) {
-		err = Error_RunnerStoped
+		err = core.Error_RunnerStoped
 		return
 	}
 	if state == int32(core.Runner_Stoping) {
-		err = Error_RunnerStoping
+		err = core.Error_RunnerStoping
 		return
 	}
 	atomic.StoreInt32(&this.state, int32(core.Runner_Stoping))

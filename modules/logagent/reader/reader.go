@@ -2,15 +2,22 @@ package reader
 
 import (
 	"lego_logagent/modules/logagent/core"
+	"sync"
+	"sync/atomic"
 
 	"github.com/liwei1dao/lego/sys/log"
 )
 
 type Reader struct {
-	Runner  core.IRunner
-	reader  core.IReader
-	meta    core.IMetaerData
-	options core.IReaderOptions
+	Runner     core.IRunner
+	reader     core.IReader
+	meta       core.IMetaerData
+	options    core.IReaderOptions
+	Procs      int
+	TaskPipe   chan core.IMetaerData
+	State      int32 //任务组状态 0 未开始 1 任务执行中 2任务组完执行完毕
+	RuntaskNum int32 //当前运行任务数
+	Wg         *sync.WaitGroup
 }
 
 func (this *Reader) GetRunner() core.IRunner {
@@ -36,12 +43,37 @@ func (this *Reader) Init(runner core.IRunner, reader core.IReader, meta core.IMe
 }
 
 func (this *Reader) Start() (err error) {
+	if this.Procs < 1 {
+		this.Procs = 1
+	}
+	this.Wg.Add(this.Procs)
+	for i := 0; i < this.Procs; i++ {
+		go this.run()
+	}
+	return
+}
+
+func (this *Reader) run() {
+	defer this.Wg.Done()
+	for v := range this.TaskPipe {
+		if err := this.reader.Read(v); err != nil {
+			log.Errorf("err:%v", err)
+		}
+	}
+}
+
+func (this *Reader) Read(task core.IMetaerData) (err error) {
+
 	return
 }
 
 ///外部调度器 驱动执行  此接口 不可阻塞
 func (this *Reader) Drive() (err error) {
-
+	if !atomic.CompareAndSwapInt32(&this.State, 0, 1) {
+		log.Debugf("Reader is collectioning runtaskNum:%d", atomic.LoadInt32(&this.RuntaskNum))
+		err = core.Error_RunnerTaskExecuting
+		return
+	}
 	return
 }
 

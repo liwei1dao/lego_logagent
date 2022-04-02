@@ -1,13 +1,5 @@
 package loganget
 
-import "errors"
-
-var (
-	Error_NoRunner      = errors.New("runner is found")
-	Error_RunnerStoping = errors.New("runner stoping")
-	Error_RunnerStoped  = errors.New("runner stoped")
-)
-
 type (
 	RunnerConfig struct {
 		Name             string                   `json:"name" bson:"_id"`  //采集器名称 唯一
