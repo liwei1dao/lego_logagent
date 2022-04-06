@@ -17,7 +17,7 @@ import (
 type Reader struct {
 	reader.Reader
 	options  IOptions            //以接口对象传递参数 方便后期继承扩展
-	meta     msql.ITableMetaData //愿数据
+	meta     msql.ISqlMetaerData //愿数据
 	schemas  map[string]string   //sql 类型处理
 	sql      lgsql.ISys
 	sourceip string
@@ -27,6 +27,8 @@ func (this *Reader) Init(runner core.IRunner, reader core.IReader, meta core.IMe
 	if err = this.Reader.Init(runner, reader, meta, options); err != nil {
 		return
 	}
+	this.options = options.(IOptions)
+	this.meta = meta.(msql.ISqlMetaerData)
 	if this.schemas, err = convert.SchemaCheck(this.options.GetSql_schema()); err != nil {
 		return
 	}
@@ -45,26 +47,26 @@ func (this *Reader) Drive() (err error) {
 		return
 	}
 	var (
-		collectiontables []core.IMetaerData
+		collectiontables []msql.ISqlMetaNodeData
 		tables           map[string]struct{}
 		tablecount       uint64
-		table            *msql.TableMeta
+		table            msql.ISqlMetaNodeData
 		ok               bool
 	)
 	if tables, err = this.scanddatabase(); err == nil && len(tables) > 0 {
 		for _, k := range this.options.GetSql_tables() {
 			if _, ok = tables[k]; ok {
 				tablecount = this.gettablecount(k)
-				if table, ok = this.meta.GetTableMeta(k); !ok {
-					table = &msql.TableMeta{
+				if table, ok = this.meta.GetNodeData(k); !ok {
+					table = &msql.SqlMetaNodeData{
 						TableName:              k,
 						TableDataCount:         tablecount,
 						TableAlreadyReadOffset: 0,
 					}
-					this.meta.SetTableMeta(k, table)
+					this.meta.SetNodeData(k, table)
 				}
-				if table.TableAlreadyReadOffset < tablecount { //有新的数据
-					table.TableDataCount = tablecount
+				if table.Get_TableAlreadyReadOffset() < tablecount { //有新的数据
+					table.Set_TableDataCount(tablecount)
 					collectiontables = append(collectiontables, table)
 				}
 			} else {
@@ -73,7 +75,7 @@ func (this *Reader) Drive() (err error) {
 		}
 		log.Debugf("collectiontables:%v", collectiontables)
 		if len(collectiontables) > 0 {
-			this.TaskPipe = make(chan core.IMetaerData, len(collectiontables))
+			this.TaskPipe = make(chan core.IMetaerNodeData, len(collectiontables))
 			for _, v := range collectiontables {
 				this.TaskPipe <- v
 			}
@@ -85,8 +87,8 @@ func (this *Reader) Drive() (err error) {
 	atomic.StoreInt32(&this.State, 0)
 	return
 }
-func (this *Reader) Read(task core.ITask) (err error) {
-	table := task.(*msql.TableMeta)
+func (this *Reader) Read(task core.IMetaerNodeData) (err error) {
+	table := task.(msql.ISqlMetaNodeData)
 clocp:
 	for {
 		if ok, err := this.collection_table(table); ok || err != nil {
@@ -150,14 +152,14 @@ func (this *Reader) gettablecount(tablename string) (count uint64) {
 }
 
 //查询语句
-func (this *Reader) getsqlstr(table *msql.TableMeta) (sqlstr string) {
-	sqlstr = strings.Replace(this.options.GetSql_querysql(), "$TABLE$", fmt.Sprintf("%s.%s", this.options.GetSql_database(), table.TableName), -1)
-	sqlstr = fmt.Sprintf("%s limit %d,%d;", sqlstr, table.TableAlreadyReadOffset, table.TableAlreadyReadOffset+uint64(this.options.GetSql_limit()))
+func (this *Reader) getsqlstr(table msql.ISqlMetaNodeData) (sqlstr string) {
+	sqlstr = strings.Replace(this.options.GetSql_querysql(), "$TABLE$", fmt.Sprintf("%s.%s", this.options.GetSql_database(), table.Get_TableName()), -1)
+	sqlstr = fmt.Sprintf("%s limit %d,%d;", sqlstr, table.Get_TableAlreadyReadOffset(), table.Get_TableAlreadyReadOffset()+uint64(this.options.GetSql_limit()))
 	return
 }
 
 //采集数据表
-func (this *Reader) collection_table(table *msql.TableMeta) (isend bool, err error) {
+func (this *Reader) collection_table(table msql.ISqlMetaNodeData) (isend bool, err error) {
 	var (
 		sqlstr   string
 		data     *sql.Rows
@@ -176,14 +178,14 @@ func (this *Reader) collection_table(table *msql.TableMeta) (isend bool, err err
 		for k, v := range this.schemas {
 			schemas[k] = v
 		}
-		scanArgs, nochiced = convert.GetInitScans(len(columns), data, schemas, table.TableName)
+		scanArgs, nochiced = convert.GetInitScans(len(columns), data, schemas, table.Get_TableName())
 		isend, err = this.getAllDatas(table, data, scanArgs, columns, nochiced, schemas)
 	}
 	return
 }
 
 //读取数据
-func (this *Reader) getAllDatas(table *msql.TableMeta, rows *sql.Rows, scanArgs []interface{}, columns []string, nochiced []bool, schemas map[string]string) (isend bool, err error) {
+func (this *Reader) getAllDatas(table msql.ISqlMetaNodeData, rows *sql.Rows, scanArgs []interface{}, columns []string, nochiced []bool, schemas map[string]string) (isend bool, err error) {
 	for rows.Next() {
 		err := rows.Scan(scanArgs...)
 		if err != nil {
@@ -195,7 +197,7 @@ func (this *Reader) getAllDatas(table *msql.TableMeta, rows *sql.Rows, scanArgs 
 			data = make(map[string]interface{}, len(scanArgs))
 		)
 		for i := 0; i < len(scanArgs); i++ {
-			_, err := convert.ConvertScanArgs(data, scanArgs[i], columns[i], table.TableName, nochiced[i], schemas)
+			_, err := convert.ConvertScanArgs(data, scanArgs[i], columns[i], table.Get_TableName(), nochiced[i], schemas)
 			if err != nil {
 				log.Errorf("getAllDatas ConvertScanArgs err:%v", err)
 			}
@@ -210,10 +212,10 @@ func (this *Reader) getAllDatas(table *msql.TableMeta, rows *sql.Rows, scanArgs 
 }
 
 //发送数据 数据量打的时候会有堵塞
-func (this *Reader) writeDataChan(table *msql.TableMeta, data map[string]interface{}) (isend bool) {
+func (this *Reader) writeDataChan(table msql.ISqlMetaNodeData, data map[string]interface{}) (isend bool) {
 	this.Input() <- core.NewCollData(this.sourceip, data)
-	table.TableAlreadyReadOffset += 1
-	if table.TableAlreadyReadOffset >= table.TableDataCount {
+	table.Set_TableAlreadyReadOffset(table.Get_TableAlreadyReadOffset() + 1)
+	if table.Get_TableAlreadyReadOffset() >= table.Get_TableDataCount() {
 		isend = true
 	}
 	return

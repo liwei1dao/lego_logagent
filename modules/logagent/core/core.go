@@ -63,6 +63,7 @@ type (
 		Metaer() IMetaer
 		Init() (err error)
 		Start() (err error)
+		Drive() (err error)
 		Close(closemsg string) (err error)
 		ReaderPipe() chan<- ICollData
 		Push_ParserPipe(data ICollData)
@@ -79,14 +80,16 @@ type (
 	}
 	IMetaerData interface {
 		GetName() string
-		GetMetae() interface{} //注意这处返回 指针对象 map对象许返回&map
+		GetValue() IMetaerNodeData
+	}
+	IMetaerNodeData interface {
 	}
 	//元数据
 	IMetaer interface {
 		Init(runner IRunner) (err error)
 		Close() (err error)
 		Read(meta IMetaerData) (err error)
-		Write(meta IMetaerData) (err error)
+		Write() (err error)
 	}
 	//读取器
 	IReader interface {
@@ -95,7 +98,7 @@ type (
 		Start() (err error)
 		Drive() (err error) //驱动工作 外部程序驱动采集器工作
 		Close() (err error)
-		Read(task IMetaerData) (err error)
+		Read(task IMetaerNodeData) (err error)
 		Input() chan<- ICollData
 	}
 	//读取器

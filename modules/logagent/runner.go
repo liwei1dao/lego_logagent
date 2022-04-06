@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/liwei1dao/lego"
+	"github.com/liwei1dao/lego/sys/cron"
 	"github.com/liwei1dao/lego/sys/log"
 )
 
@@ -144,6 +145,18 @@ func (this *Runner) Start() (err error) {
 	}
 	log.Infof("启动Runner:%s", this.conf.Name)
 	atomic.StoreInt32(&this.state, int32(core.Runner_Runing))
+	if this.conf.CronSql != "" {
+		cron.AddFunc(this.conf.CronSql, func() {
+			if err := this.Drive(); err != nil {
+				log.Errorf("err:%v", err)
+			}
+		})
+	}
+	return
+}
+
+func (this *Runner) Drive() (err error) {
+	err = this.reader.Drive()
 	return
 }
 

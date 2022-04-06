@@ -1,8 +1,8 @@
-package sql
+package document
 
 import (
 	"lego_logagent/modules/logagent/core"
-	"lego_logagent/modules/logagent/metaer/sql"
+	doc "lego_logagent/modules/logagent/metaer/document"
 	"lego_logagent/modules/logagent/reader"
 )
 
@@ -11,7 +11,7 @@ func init() {
 }
 
 const (
-	ReaderType = "sql"
+	ReaderType = "document"
 )
 
 func NewReader(runner core.IRunner, conf map[string]interface{}) (rder core.IReader, err error) {
@@ -23,7 +23,7 @@ func NewReader(runner core.IRunner, conf map[string]interface{}) (rder core.IRea
 		return
 	}
 	r = &Reader{}
-	if err = r.Init(runner, r, sql.NewMeta("reader"), opt); err != nil {
+	if err = r.Init(runner, r, doc.NewMeta("reader"), opt); err != nil {
 		return
 	}
 	rder = r

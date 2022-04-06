@@ -14,7 +14,7 @@ type Reader struct {
 	meta       core.IMetaerData
 	options    core.IReaderOptions
 	Procs      int
-	TaskPipe   chan core.IMetaerData
+	TaskPipe   chan core.IMetaerNodeData
 	State      int32 //任务组状态 0 未开始 1 任务执行中 2任务组完执行完毕
 	RuntaskNum int32 //当前运行任务数
 	Wg         *sync.WaitGroup
@@ -59,6 +59,10 @@ func (this *Reader) run() {
 		if err := this.reader.Read(v); err != nil {
 			log.Errorf("err:%v", err)
 		}
+		if atomic.CompareAndSwapInt32(&this.State, 1, 2) { //最后一个任务已经完成
+			this.Wg.Wait()
+			atomic.StoreInt32(&this.State, 0)
+		}
 	}
 }
 
@@ -85,7 +89,7 @@ func (this *Reader) Close() (err error) {
 }
 
 func (this *Reader) SyncMeta() (err error) {
-	return this.Runner.Metaer().Write(this.meta)
+	return this.Runner.Metaer().Write()
 }
 
 func (this *Reader) Input() chan<- core.ICollData {

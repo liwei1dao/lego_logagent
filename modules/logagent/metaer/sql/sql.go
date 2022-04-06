@@ -1,59 +1,76 @@
 package sql
 
 import (
-	"fmt"
 	"lego_logagent/modules/logagent/core"
-	"lego_logagent/modules/logagent/metaer"
-	"sync"
 )
 
-func NewMeta(name string) (meta ITableMetaData) {
+func NewMeta(name string) (meta ISqlMetaerData) {
 	meta = &SqlMetaData{
-		MetaDataBase: metaer.MetaDataBase{
-			Name: name,
-		},
-		sqls: make(map[string]*TableMeta),
+		Name:  name,
+		nodes: make(map[string]ISqlMetaNodeData),
 	}
 	return
 }
 
-type ITableMetaData interface {
-	core.IMetaerData
-	GetTableMeta(tablename string) (table *TableMeta, ok bool)
-	SetTableMeta(tablename string, table *TableMeta) (err error)
-}
+type (
+	ISqlMetaerData interface {
+		core.IMetaerData
+		GetNodeData(name string) (node ISqlMetaNodeData, ok bool)
+		SetNodeData(name string, node ISqlMetaNodeData)
+	}
+	ISqlMetaNodeData interface {
+		core.IMetaerNodeData
+		Get_TableName() string
+		Set_TableName(v string)
+		Get_TableDataCount() uint64
+		Set_TableDataCount(v uint64)
+		Get_TableAlreadyReadOffset() uint64
+		Set_TableAlreadyReadOffset(v uint64)
+	}
+	SqlMetaData struct {
+		Name  string
+		nodes map[string]ISqlMetaNodeData
+	}
+	SqlMetaNodeData struct {
+		TableName              string //表名
+		TableDataCount         uint64 //表的数据长度
+		TableAlreadyReadOffset uint64 //已采集数据长度
+	}
+)
 
-type TableMeta struct {
-	TableName              string //表名
-	TableDataCount         uint64 //表的数据长度
-	TableAlreadyReadOffset uint64 //已采集数据长度
-}
-
-type SqlMetaData struct {
-	metaer.MetaDataBase
-	lock sync.RWMutex
-	sqls map[string]*TableMeta
+//map 结构对象序列化需要 map的指针
+func (this *SqlMetaData) GetName() string {
+	return this.Name
 }
 
 //map 结构对象序列化需要 map的指针
-func (this *SqlMetaData) GetMetae() interface{} {
-	return &this.sqls
+func (this *SqlMetaData) GetValue() core.IMetaerNodeData {
+	return &this.nodes
 }
-
-func (this *SqlMetaData) GetTableMeta(tablename string) (table *TableMeta, ok bool) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	table, ok = this.sqls[tablename]
+func (this *SqlMetaData) GetNodeData(name string) (node ISqlMetaNodeData, ok bool) {
+	node, ok = this.nodes[name]
+	return
+}
+func (this *SqlMetaData) SetNodeData(name string, node ISqlMetaNodeData) {
+	this.nodes[name] = node
 	return
 }
 
-func (this *SqlMetaData) SetTableMeta(tablename string, table *TableMeta) (err error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	if _, ok := this.sqls[tablename]; !ok {
-		this.sqls[tablename] = table
-	} else {
-		err = fmt.Errorf("Meta:%s is Repeat %s", this.Name, tablename)
-	}
-	return
+func (this *SqlMetaNodeData) Get_TableName() string {
+	return this.TableName
+}
+func (this *SqlMetaNodeData) Set_TableName(v string) {
+	this.TableName = v
+}
+func (this *SqlMetaNodeData) Get_TableDataCount() uint64 {
+	return this.TableDataCount
+}
+func (this *SqlMetaNodeData) Set_TableDataCount(v uint64) {
+	this.TableDataCount = v
+}
+func (this *SqlMetaNodeData) Get_TableAlreadyReadOffset() uint64 {
+	return this.TableAlreadyReadOffset
+}
+func (this *SqlMetaNodeData) Set_TableAlreadyReadOffset(v uint64) {
+	this.TableAlreadyReadOffset = v
 }

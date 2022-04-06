@@ -11,9 +11,7 @@ import (
 
 func NewMetaer(runner core.IRunner) (metaer core.IMetaer, err error) {
 	metaer = &RedisMetaer{}
-	if err = metaer.Init(runner); err != nil {
-		return
-	}
+	err = metaer.Init(runner)
 	return
 }
 
@@ -21,12 +19,11 @@ type RedisMetaer struct {
 	runner core.IRunner
 	db     core.IDB
 	lock   sync.RWMutex
-	mates  map[string]core.IMetaerData
+	meta   core.IMetaerData
 }
 
 func (this *RedisMetaer) Init(runner core.IRunner) (err error) {
 	this.runner = runner
-	this.mates = make(map[string]core.IMetaerData)
 	return
 }
 
@@ -34,22 +31,23 @@ func (this *RedisMetaer) Init(runner core.IRunner) (err error) {
 func (this *RedisMetaer) Read(meta core.IMetaerData) (err error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	if err = this.db.ReadMetaData(this.runner.Name(), meta.GetName(), meta.GetMetae()); err != nil {
+	this.meta = meta
+	if err = this.db.ReadMetaData(this.runner.Name(), this.meta.GetName(), this.meta); err != nil {
 		if err == redis.RedisNil || err == mgo.MongodbNil {
 			err = nil
 		} else {
-			log.Errorf("RedisMetaer Read:%s err:%v", meta.GetName(), err)
+			log.Errorf("RedisMetaer Read:%s err:%v", this.meta.GetName(), err)
 		}
 	}
 	return
 }
 
 //注册加载元数据
-func (this *RedisMetaer) Write(meta core.IMetaerData) (err error) {
+func (this *RedisMetaer) Write() (err error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	if err = this.db.WriteMetaData(this.runner.Name(), meta.GetName(), meta.GetMetae()); err != nil {
-		log.Errorf("RedisMetaer Write:%s err:%v", meta.GetName(), err)
+	if err = this.db.WriteMetaData(this.runner.Name(), this.meta.GetName(), this.meta); err != nil {
+		log.Errorf("RedisMetaer Write:%s err:%v", this.meta.GetName(), err)
 	}
 	return
 }
@@ -58,11 +56,9 @@ func (this *RedisMetaer) Write(meta core.IMetaerData) (err error) {
 func (this *RedisMetaer) Close() (err error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	for k, v := range this.mates {
-		if err = this.Write(v); err != nil {
-			log.Errorf("Metaer MetaData:%s Write Fatal err:%v", k, err)
-			return
-		}
+	if err = this.Write(); err != nil {
+		log.Errorf("MetaData:%s Write Fatal err:%v", this.meta.GetName(), err)
+		return
 	}
 	return
 }
