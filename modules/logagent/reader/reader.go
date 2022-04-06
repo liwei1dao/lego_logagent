@@ -56,9 +56,7 @@ func (this *Reader) Start() (err error) {
 func (this *Reader) run() {
 	defer this.Wg.Done()
 	for v := range this.TaskPipe {
-		if err := this.reader.Read(v); err != nil {
-			log.Errorf("err:%v", err)
-		}
+		this.reader.Read(v)
 		if atomic.CompareAndSwapInt32(&this.State, 1, 2) { //最后一个任务已经完成
 			this.Wg.Wait()
 			atomic.StoreInt32(&this.State, 0)

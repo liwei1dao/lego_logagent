@@ -36,11 +36,6 @@ func (this *Reader) Init(runner core.IRunner, reader core.IReader, meta core.IMe
 	return
 }
 
-func (this *Reader) Start() (err error) {
-	err = this.Reader.Start()
-	return
-}
-
 ///外部调度器 驱动执行  此接口 不可阻塞
 func (this *Reader) Drive() (err error) {
 	if err = this.Reader.Drive(); err != nil {

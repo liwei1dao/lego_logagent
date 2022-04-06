@@ -28,6 +28,5 @@ func (this *LogAnget) Init(service core.IService, module core.IModule, options c
 	if err = this.Http.Init(service, module, options); err != nil {
 		return
 	}
-
 	return
 }
