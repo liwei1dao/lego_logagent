@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/liwei1dao/lego/sys/log"
+	"github.com/liwei1dao/lego/sys/blockcache"
 )
 
 type Sender struct {
@@ -16,6 +17,7 @@ type Sender struct {
 	Procs   int
 	Cnt     int64
 	Wg      *sync.WaitGroup
+	cache blockcache.ISys
 }
 
 func (this *Sender) GetRunner() core.IRunner {
