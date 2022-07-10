@@ -90,14 +90,18 @@ func (this *TransformsOptions) GetType() string {
 type (
 	ISenderOptions interface {
 		GetType() string
+		GetCacheMaxSzie() int64
 	}
 	SenderOptions struct {
-		Type string //读取器类型
+		Type         string //读取器类型
+		CacheMaxSzie int64  //缓存区大小
 	}
 )
 
 func NewSenderOptions(config map[string]interface{}) (opt ISenderOptions, err error) {
-	options := &SenderOptions{}
+	options := &SenderOptions{
+		CacheMaxSzie: 100 * 1024 * 1024,
+	}
 	if config != nil {
 		err = mapstructure.Decode(config, options)
 	}
@@ -106,4 +110,7 @@ func NewSenderOptions(config map[string]interface{}) (opt ISenderOptions, err er
 }
 func (this *SenderOptions) GetType() string {
 	return this.Type
+}
+func (this *SenderOptions) GetCacheMaxSzie() int64 {
+	return this.CacheMaxSzie
 }

@@ -1,8 +1,8 @@
 package kafka
 
 import (
-	"lego_datacollector/modules/datacollector/core"
-	"lego_datacollector/modules/datacollector/sender"
+	"lego_logagent/modules/logagent/core"
+	"lego_logagent/modules/logagent/sender"
 )
 
 func init() {

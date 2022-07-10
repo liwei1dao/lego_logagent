@@ -3,7 +3,7 @@ package kafka
 import (
 	"compress/gzip"
 	"fmt"
-	"lego_datacollector/modules/datacollector/core"
+	"lego_logagent/modules/logagent/core"
 	"time"
 
 	"github.com/Shopify/sarama"

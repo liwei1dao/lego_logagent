@@ -17,6 +17,7 @@ import (
 
 type Runner struct {
 	conf           *RunnerConfig
+	log            log.ILog
 	readerPope     chan core.ICollData
 	parserPope     chan core.ICollData
 	transformsPope []chan core.ICollData
@@ -213,4 +214,25 @@ func (this *Runner) Close(closemsg string) (err error) {
 	}
 	atomic.StoreInt32(&this.state, int32(core.Runner_Stoped))
 	return
+}
+
+///日志***********************************************************************
+
+func (this *Runner) Debugf(format string, a ...interface{}) {
+	this.log.Debugf(fmt.Sprintf("[Runner:%s] "+format, this.conf.Name), a...)
+}
+func (this *Runner) Infof(format string, a ...interface{}) {
+	this.log.Infof(fmt.Sprintf("[Runner:%s] "+format, this.conf.Name), a...)
+}
+func (this *Runner) Warnf(format string, a ...interface{}) {
+	this.log.Warnf(fmt.Sprintf("[Runner:%s] "+format, this.conf.Name), a...)
+}
+func (this *Runner) Errorf(format string, a ...interface{}) {
+	this.log.Errorf(fmt.Sprintf("[Runner:%s] "+format, this.conf.Name), a...)
+}
+func (this *Runner) Panicf(format string, a ...interface{}) {
+	this.log.Panicf(fmt.Sprintf("[Runner:%s] "+format, this.conf.Name), a...)
+}
+func (this *Runner) Fatalf(format string, a ...interface{}) {
+	this.log.Fatalf(fmt.Sprintf("[Runner:%s] "+format, this.conf.Name), a...)
 }

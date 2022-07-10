@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"lego_logagent/modules/loganget"
+	loganget "lego_logagent/modules/logagent"
 	"lego_logagent/services"
 
 	"github.com/liwei1dao/lego"

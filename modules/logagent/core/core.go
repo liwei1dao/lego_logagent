@@ -1,6 +1,10 @@
 package core
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/liwei1dao/lego/sys/log"
+)
 
 const (
 	KeyRaw         = "message"
@@ -56,6 +60,7 @@ type (
 	}
 	//采集器结构
 	IRunner interface {
+		log.Ilogf
 		Name() string
 		MaxProcs() int
 		MaxMessageSzie() uint64
@@ -121,7 +126,7 @@ type (
 		GetRunner() IRunner
 		GetType() string
 		Start() (err error)
-		Run(pipeId int, pipe <-chan ICollData, params ...interface{})
+		Run(pipeId int)
 		Close() (err error)
 		Send(pipeId int, data ICollData, params ...interface{})
 		ReadCnt() int64

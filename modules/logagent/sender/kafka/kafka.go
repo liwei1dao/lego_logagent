@@ -1,9 +1,8 @@
 package kafka
 
 import (
-	"fmt"
-	"lego_datacollector/modules/datacollector/core"
-	"lego_datacollector/modules/datacollector/sender"
+	"lego_logagent/modules/logagent/core"
+	"lego_logagent/modules/logagent/sender"
 
 	"github.com/Shopify/sarama"
 	"github.com/liwei1dao/lego/sys/kafka"
@@ -12,86 +11,45 @@ import (
 type Sender struct {
 	sender.Sender
 	options IOptions
-	kafkas  []kafka.IKafka
 }
 
 func (this *Sender) Init(rer core.IRunner, ser core.ISender, options core.ISenderOptions) (err error) {
 	this.Sender.Init(rer, ser, options)
 	this.options = options.(IOptions)
-	this.kafkas = make([]kafka.IKafka, 0)
 	return
 }
 
-func (this *Sender) Start() (err error) {
-	var kafka kafka.IKafka
-	if this.Procs < 1 {
-		this.Procs = 1
-	}
-	if pipe, ok := this.Runner.SenderPipe(this.GetType()); !ok {
-		err = fmt.Errorf("no found SenderPope:%s", this.GetType())
+func (this *Sender) Run(pipeId int) {
+	var (
+		err     error
+		kafka   kafka.ISys
+		data    core.ICollData
+		message string
+	)
+	defer func() {
+		kafka.Close()
+		this.Wg.Done()
+	}()
+	if kafka, err = this.createkafkaclient(); err != nil {
+		this.Runner.Errorf("Run kafka pipeId:%d err:%v", pipeId, err)
 		return
 	} else {
-		for i := 0; i < this.Procs; i++ {
-			if kafka, err = this.createkafkaclient(); err == nil {
-				this.Wg.Add(1)
-				this.kafkas = append(this.kafkas, kafka)
-				go this.Run(i, pipe, kafka)
-			} else {
-				this.Runner.Errorf("Send kafka err:%v", err)
-				return
-			}
-		}
-	}
-	if kafka, err = this.createkafkaclient(); err == nil {
-		this.kafkas = append(this.kafkas, kafka)
-		go this.kafka_msgerrhandle(kafka)
-	}
-	return
-}
-
-func (this *Sender) Run(pipeId int, pipe <-chan core.ICollDataBucket, params ...interface{}) {
-	defer this.Wg.Done()
-	for v := range pipe {
-		this.Send(pipeId, v, params...)
-	}
-}
-
-//关闭
-func (this *Sender) Close() (err error) {
-	if err = this.Sender.Close(); err != nil {
-		this.Runner.Errorf("Sender Close err:%v", err)
-	}
-	for _, v := range this.kafkas {
-		v.Asyncproducer_Close()
-	}
-	return
-}
-
-func (this *Sender) Send(pipeId int, bucket core.ICollDataBucket, params ...interface{}) {
-	if kafka, ok := params[0].(kafka.IKafka); ok {
-		for _, v := range bucket.SuccItems() {
-			var (
-				message = ""
-				err     error
-			)
-			if message, err = v.ToString(); err == nil {
+		for v := range this.Cache.Out() {
+			data = v.(core.ICollData)
+			if message, _ = data.ToString(); err == nil {
 				msg := &sarama.ProducerMessage{
 					Topic: this.options.GetKafka_topic(),
 					Value: sarama.StringEncoder(message),
 				}
 				kafka.Asyncproducer_Input() <- msg
 			} else {
-				v.SetError(err)
+				this.Runner.Errorf("kafka sender err:%v", err)
 			}
 		}
-		this.Sender.Send(pipeId, bucket)
-		return
-	} else {
-		this.Runner.Errorf("Sender kafka err:params[0] no is kafka")
 	}
 }
 
-func (this *Sender) createkafkaclient() (sys kafka.IKafka, err error) {
+func (this *Sender) createkafkaclient() (sys kafka.ISys, err error) {
 	sys, err = kafka.NewSys(
 		kafka.SetStartType(kafka.Asyncproducer),
 		kafka.SetHosts(this.options.GetKafka_host()),
@@ -107,7 +65,7 @@ func (this *Sender) createkafkaclient() (sys kafka.IKafka, err error) {
 	return
 }
 
-func (this *Sender) kafka_msgerrhandle(kafka kafka.IKafka) {
+func (this *Sender) kafka_msgerrhandle(kafka kafka.ISys) {
 	go func() {
 		for v := range kafka.Asyncproducer_Errors() {
 			kafka.Asyncproducer_Input() <- &sarama.ProducerMessage{

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/liwei1dao/lego/sys/log"
 	"github.com/liwei1dao/lego/sys/blockcache"
+	"github.com/liwei1dao/lego/sys/log"
 )
 
 type Sender struct {
@@ -17,7 +17,7 @@ type Sender struct {
 	Procs   int
 	Cnt     int64
 	Wg      *sync.WaitGroup
-	cache blockcache.ISys
+	Cache   blockcache.ISys
 }
 
 func (this *Sender) GetRunner() core.IRunner {
@@ -35,6 +35,7 @@ func (this *Sender) Init(rer core.IRunner, ser core.ISender, options core.ISende
 	this.Runner = rer
 	this.sender = ser
 	this.options = options
+	this.Cache, err = blockcache.NewSys(blockcache.SetCacheMaxSzie(this.options.GetCacheMaxSzie()))
 	this.Wg = new(sync.WaitGroup)
 	this.Procs = this.Runner.MaxProcs()
 	this.Cnt = 0
@@ -49,19 +50,17 @@ func (this *Sender) Start() (err error) {
 		err = fmt.Errorf("no found SenderPope:%s", this.GetType())
 		return
 	} else {
-		for i := 0; i < this.Procs; i++ {
-			this.Wg.Add(1)
-			go this.sender.Run(i, pipe)
-		}
+		go func(p <-chan core.ICollData) {
+			for v := range pipe {
+				this.Cache.In() <- v
+			}
+		}(pipe)
+	}
+	for i := 0; i < this.Procs; i++ {
+		this.Wg.Add(1)
+		go this.sender.Run(i)
 	}
 	return
-}
-
-func (this *Sender) Run(pipeId int, pipe <-chan core.ICollData, params ...interface{}) {
-	defer this.Wg.Done()
-	for v := range pipe {
-		this.sender.Send(pipeId, v, params...)
-	}
 }
 
 func (this *Sender) Send(pipeId int, data core.ICollData, params ...interface{}) {
@@ -70,6 +69,7 @@ func (this *Sender) Send(pipeId int, data core.ICollData, params ...interface{})
 
 //关闭
 func (this *Sender) Close() (err error) {
+	this.Cache.Close()
 	this.Wg.Wait()
 	log.Debugf("Sender Close Succ")
 	return
