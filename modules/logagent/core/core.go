@@ -60,7 +60,7 @@ type (
 	}
 	//采集器结构
 	IRunner interface {
-		log.Ilogf
+		Log() log.ILogger
 		Name() string
 		MaxProcs() int
 		MaxMessageSzie() uint64

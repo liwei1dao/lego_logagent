@@ -8,7 +8,6 @@ import (
 	"github.com/liwei1dao/lego"
 	"github.com/liwei1dao/lego/base/cluster"
 	"github.com/liwei1dao/lego/core"
-	"github.com/liwei1dao/lego/sys/rpc"
 )
 
 var (
@@ -40,5 +39,4 @@ type Service struct {
 
 func (this *Service) InitSys() {
 	this.ServiceBase.InitSys()
-	rpc.OnRegisterJsonRpcData(&loganget.RunnerConfig{}) //注册rpc通信数据
 }

@@ -31,7 +31,7 @@ func (this *Sender) Run(pipeId int) {
 		this.Wg.Done()
 	}()
 	if kafka, err = this.createkafkaclient(); err != nil {
-		this.Runner.Errorf("Run kafka pipeId:%d err:%v", pipeId, err)
+		this.Runner.Log().Errorf("Run kafka pipeId:%d err:%v", pipeId, err)
 		return
 	} else {
 		for v := range this.Cache.Out() {
@@ -43,7 +43,7 @@ func (this *Sender) Run(pipeId int) {
 				}
 				kafka.Asyncproducer_Input() <- msg
 			} else {
-				this.Runner.Errorf("kafka sender err:%v", err)
+				this.Runner.Log().Errorf("kafka sender err:%v", err)
 			}
 		}
 	}
